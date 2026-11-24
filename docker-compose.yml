@@ -1,0 +1,7 @@
+services:
+  qr-studio:
+    build: .
+    container_name: qr-studio
+    restart: unless-stopped
+    ports:
+      - "${PORT:-47831}:80"

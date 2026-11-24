@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Studio Ultimate — Générateur 100% Personnalisable</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QR Code Generator Library (Kazuhiko Arase) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Damier de transparence haute précision */
+        .checkerboard {
+            background-color: #ffffff;
+            background-image: 
+                linear-gradient(45deg, #cbd5e1 25%, transparent 25%), 
+                linear-gradient(-45deg, #cbd5e1 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #cbd5e1 75%), 
+                linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .dark .checkerboard {
+            background-color: #1e293b;
+            background-image: 
+                linear-gradient(45deg, #334155 25%, transparent 25%), 
+                linear-gradient(-45deg, #334155 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #334155 75%), 
+                linear-gradient(-45deg, transparent 75%, #334155 75%);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.8);
+        }
+
+        /* Color Input Styling */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            padding: 0;
+            overflow: hidden;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 0.5rem;
+        }
+
+        /* Animations fluides */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
+                    <i data-lucide="qr-code" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+                        QR Studio <span class="text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 ml-1">Ultimate</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Moteur vectoriel & matriciel 100% personnalisable</p>
+                </div>
+            </div>
+
+            <!-- Presets rapides -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 hidden md:inline mr-1">Thèmes rapides :</span>
+                <button onclick="applyPreset('cyberpunk')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-pink-500 to-cyan-400"></span> Néon
+                </button>
+                <button onclick="applyPreset('ghost')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full border border-slate-400 bg-transparent"></span> Transparent Pur
+                </button>
+                <button onclick="applyPreset('luxury')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-amber-300 to-yellow-600"></span> Or & Noir
+                </button>
+                <button onclick="resetAll()" title="Réinitialiser" class="p-2 text-slate-400 hover:text-white rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- LEFT COLUMN: Editor Controls (7 cols on large screens) -->
+        <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            
+            <!-- Navigation Tabs -->
+            <div class="flex overflow-x-auto border-b border-slate-800 bg-slate-950/50 p-1.5 gap-1">
+                <button onclick="switchTab('content')" id="tab-btn-content" class="tab-btn active flex-1 min-w-[105px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-medium transition-all bg-brand-600 text-white shadow-md shadow-brand-600/20">
+                    <i data-lucide="type" class="w-4 h-4"></i> Contenu
+                </button>
+                <button onclick="switchTab('shapes')" id="tab-btn-shapes" class="tab-btn flex-1 min-w-[105px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all">
+                    <i data-lucide="shapes" class="w-4 h-4"></i> Formes
+                </button>
+                <button onclick="switchTab('colors')" id="tab-btn-colors" class="tab-btn flex-1 min-w-[105px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all">
+                    <i data-lucide="palette" class="w-4 h-4"></i> Couleurs & Fond
+                </button>
+                <button onclick="switchTab('logo')" id="tab-btn-logo" class="tab-btn flex-1 min-w-[105px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all">
+                    <i data-lucide="image-plus" class="w-4 h-4"></i> Logo & Texte
+                </button>
+                <button onclick="switchTab('advanced')" id="tab-btn-advanced" class="tab-btn flex-1 min-w-[105px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all">
+                    <i data-lucide="sliders" class="w-4 h-4"></i> Options
+                </button>
+            </div>
+
+            <!-- Tab Panels Container -->
+            <div class="p-6 space-y-6">
+
+                <!-- TAB 1: CONTENU -->
+                <div id="tab-content" class="tab-content active space-y-6">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Type de données</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            <button onclick="setContentType('url')" id="type-url" class="content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-brand-500 bg-brand-500/10 text-brand-400 transition">
+                                <i data-lucide="globe" class="w-5 h-5 mb-1"></i>
+                                <span class="text-xs font-medium">Lien URL</span>
+                            </button>
+                            <button onclick="setContentType('text')" id="type-text" class="content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+                                <i data-lucide="align-left" class="w-5 h-5 mb-1"></i>
+                                <span class="text-xs font-medium">Texte</span>
+                            </button>
+                            <button onclick="setContentType('wifi')" id="type-wifi" class="content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+                                <i data-lucide="wifi" class="w-5 h-5 mb-1"></i>
+                                <span class="text-xs font-medium">Wi-Fi</span>
+                            </button>
+                            <button onclick="setContentType('vcard')" id="type-vcard" class="content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+                                <i data-lucide="contact" class="w-5 h-5 mb-1"></i>
+                                <span class="text-xs font-medium">vCard</span>
+                            </button>
+                            <button onclick="setContentType('email')" id="type-email" class="content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+                                <i data-lucide="mail" class="w-5 h-5 mb-1"></i>
+                                <span class="text-xs font-medium">E-mail</span>
+                            </button>
+                            <button onclick="setContentType('sms')" id="type-sms" class="content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
+                                <i data-lucide="message-square" class="w-5 h-5 mb-1"></i>
+                                <span class="text-xs font-medium">SMS</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Form Fields -->
+                    <div id="form-url" class="content-form space-y-3">
+                        <label class="block text-sm font-medium text-slate-300">Adresse du site web (URL)</label>
+                        <div class="relative">
+                            <input type="text" id="input-url" value="https://www.google.fr" oninput="updateQR()" placeholder="https://votre-site.com" class="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm text-white placeholder-slate-500 outline-none transition">
+                            <i data-lucide="link" class="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5"></i>
+                        </div>
+                    </div>
+
+                    <div id="form-text" class="content-form hidden space-y-3">
+                        <label class="block text-sm font-medium text-slate-300">Votre texte libre</label>
+                        <textarea id="input-text" rows="3" oninput="updateQR()" placeholder="Entrez n'importe quel texte, code, note..." class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-brand-500 text-sm text-white placeholder-slate-500 outline-none transition">Voici mon QR Code 100% personnalisé !</textarea>
+                    </div>
+
+                    <div id="form-wifi" class="content-form hidden space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Nom du réseau (SSID)</label>
+                                <input type="text" id="wifi-ssid" oninput="updateQR()" placeholder="Mon_WiFi_Maison" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Mot de passe</label>
+                                <input type="text" id="wifi-pass" oninput="updateQR()" placeholder="MotDePasseSecret" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Sécurité</label>
+                                <select id="wifi-type" onchange="updateQR()" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                                    <option value="WPA">WPA / WPA2 / WPA3</option>
+                                    <option value="WEP">WEP</option>
+                                    <option value="nopass">Aucune (Ouvert)</option>
+                                </select>
+                            </div>
+                            <label class="flex items-center gap-2 text-sm text-slate-300 mt-5 cursor-pointer">
+                                <input type="checkbox" id="wifi-hidden" onchange="updateQR()" class="rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-brand-500">
+                                Réseau masqué
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="form-vcard" class="content-form hidden space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input type="text" id="vcard-fn" oninput="updateQR()" placeholder="Prénom & Nom" class="px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                            <input type="text" id="vcard-org" oninput="updateQR()" placeholder="Entreprise / Organisation" class="px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                            <input type="tel" id="vcard-tel" oninput="updateQR()" placeholder="Téléphone (+33 6...)" class="px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                            <input type="email" id="vcard-email" oninput="updateQR()" placeholder="Adresse E-mail" class="px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                        </div>
+                        <input type="url" id="vcard-url" oninput="updateQR()" placeholder="Site Internet (https://...)" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                    </div>
+
+                    <div id="form-email" class="content-form hidden space-y-3">
+                        <input type="email" id="email-to" oninput="updateQR()" placeholder="Destinataire (contact@domaine.fr)" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                        <input type="text" id="email-sub" oninput="updateQR()" placeholder="Sujet de l'email" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                        <textarea id="email-body" rows="2" oninput="updateQR()" placeholder="Message pré-rempli..." class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500"></textarea>
+                    </div>
+
+                    <div id="form-sms" class="content-form hidden space-y-3">
+                        <input type="tel" id="sms-tel" oninput="updateQR()" placeholder="Numéro de téléphone (+33 6...)" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                        <textarea id="sms-body" rows="2" oninput="updateQR()" placeholder="Message SMS..." class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500"></textarea>
+                    </div>
+                </div>
+
+                <!-- TAB 2: FORMES & STYLE DES MODULES -->
+                <div id="tab-shapes" class="tab-content space-y-6">
+                    <!-- Style des points (Modules) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Style des Points (Modules)</label>
+                            <span class="text-xs text-brand-400 font-medium" id="label-dot-style">Carré classique</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5" id="dot-style-group">
+                            <!-- Généré dynamiquement ou en dur -->
+                            <button onclick="setShape('dotStyle', 'square')" data-val="square" class="shape-btn-dot p-3 rounded-xl border border-brand-500 bg-brand-500/10 text-white flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 bg-current"></div>
+                                <span class="text-xs">Carré</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'rounded')" data-val="rounded" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 bg-current rounded-md"></div>
+                                <span class="text-xs">Arrondi</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'dots')" data-val="dots" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 bg-current rounded-full"></div>
+                                <span class="text-xs">Cercle</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'liquid')" data-val="liquid" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 bg-current rounded-tl-xl rounded-br-xl"></div>
+                                <span class="text-xs">Fluide / Connecté</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'diamond')" data-val="diamond" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-5 h-5 bg-current rotate-45 my-0.5"></div>
+                                <span class="text-xs">Losange</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'star')" data-val="star" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <i data-lucide="sparkles" class="w-6 h-6"></i>
+                                <span class="text-xs">Étoile</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'heart')" data-val="heart" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <i data-lucide="heart" class="w-6 h-6 fill-current"></i>
+                                <span class="text-xs">Cœur</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'cross')" data-val="cross" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <i data-lucide="plus" class="w-6 h-6 stroke-[3]"></i>
+                                <span class="text-xs">Croix</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'vbars')" data-val="vbars" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <div class="flex gap-1 h-6 items-center"><div class="w-1.5 h-6 bg-current rounded-full"></div><div class="w-1.5 h-6 bg-current rounded-full"></div></div>
+                                <span class="text-xs">Colonnes</span>
+                            </button>
+                            <button onclick="setShape('dotStyle', 'hbars')" data-val="hbars" class="shape-btn-dot p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition">
+                                <div class="flex flex-col gap-1 w-6 justify-center h-6"><div class="h-1.5 w-6 bg-current rounded-full"></div><div class="h-1.5 w-6 bg-current rounded-full"></div></div>
+                                <span class="text-xs">Lignes</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Taille des points (Espacement) -->
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                        <div class="flex justify-between text-xs font-medium mb-2">
+                            <span class="text-slate-300">Densité / Épaisseur des points</span>
+                            <span id="dot-scale-val" class="text-brand-400">92%</span>
+                        </div>
+                        <input type="range" id="dot-scale" min="55" max="105" value="92" oninput="updateQR()" class="w-full accent-brand-500 cursor-pointer">
+                    </div>
+
+                    <!-- Cadre des Yeux (Coins extérieurs) -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Cadre des Yeux (Coins extérieurs)</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+                            <button onclick="setShape('eyeFrame', 'square')" data-val="square" class="shape-btn-eyeframe p-3 rounded-xl border border-brand-500 bg-brand-500/10 text-white flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 border-[3px] border-current"></div>
+                                <span class="text-xs">Carré</span>
+                            </button>
+                            <button onclick="setShape('eyeFrame', 'rounded')" data-val="rounded" class="shape-btn-eyeframe p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 border-[3px] border-current rounded-lg"></div>
+                                <span class="text-xs">Arrondi</span>
+                            </button>
+                            <button onclick="setShape('eyeFrame', 'circle')" data-val="circle" class="shape-btn-eyeframe p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 border-[3px] border-current rounded-full"></div>
+                                <span class="text-xs">Cercle</span>
+                            </button>
+                            <button onclick="setShape('eyeFrame', 'leaf')" data-val="leaf" class="shape-btn-eyeframe p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 border-[3px] border-current rounded-tl-xl rounded-br-xl"></div>
+                                <span class="text-xs">Feuille</span>
+                            </button>
+                            <button onclick="setShape('eyeFrame', 'shield')" data-val="shield" class="shape-btn-eyeframe p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-6 h-6 border-[3px] border-current rounded-t-lg rounded-b-2xl"></div>
+                                <span class="text-xs">Écusson</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pupille des Yeux (Centre des coins) -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Pupille des Yeux (Intérieur des coins)</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                            <button onclick="setShape('eyeBall', 'square')" data-val="square" class="shape-btn-eyeball p-3 rounded-xl border border-brand-500 bg-brand-500/10 text-white flex flex-col items-center gap-1.5 transition">
+                                <div class="w-4 h-4 bg-current"></div>
+                                <span class="text-xs">Carré</span>
+                            </button>
+                            <button onclick="setShape('eyeBall', 'rounded')" data-val="rounded" class="shape-btn-eyeball p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-4 h-4 bg-current rounded-sm"></div>
+                                <span class="text-xs">Arrondi</span>
+                            </button>
+                            <button onclick="setShape('eyeBall', 'circle')" data-val="circle" class="shape-btn-eyeball p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-4 h-4 bg-current rounded-full"></div>
+                                <span class="text-xs">Cercle</span>
+                            </button>
+                            <button onclick="setShape('eyeBall', 'diamond')" data-val="diamond" class="shape-btn-eyeball p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <div class="w-3.5 h-3.5 bg-current rotate-45"></div>
+                                <span class="text-xs">Losange</span>
+                            </button>
+                            <button onclick="setShape('eyeBall', 'star')" data-val="star" class="shape-btn-eyeball p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                <span class="text-xs">Étoile</span>
+                            </button>
+                            <button onclick="setShape('eyeBall', 'heart')" data-val="heart" class="shape-btn-eyeball p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1.5 transition">
+                                <i data-lucide="heart" class="w-4 h-4 fill-current"></i>
+                                <span class="text-xs">Cœur</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: COULEURS & FOND TRANSPARENT -->
+                <div id="tab-colors" class="tab-content space-y-6">
+                    
+                    <!-- FOND TRANSPARENT MISE EN AVANT -->
+                    <div class="p-4 rounded-2xl bg-gradient-to-r from-brand-500/15 via-purple-500/10 to-slate-900 border border-brand-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <div class="p-2.5 rounded-xl bg-brand-500/20 text-brand-400 mt-0.5">
+                                <i data-lucide="layers" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    Fond 100% Transparent (Canal Alpha)
+                                    <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Prêt pour PNG</span>
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Supprime totalement l'arrière-plan pour intégrer le QR code sur vos designs.</p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer self-end sm:self-center shrink-0">
+                            <input type="checkbox" id="bg-transparent" onchange="toggleTransparentBg()" class="sr-only peer">
+                            <div class="w-12 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                        </label>
+                    </div>
+
+                    <!-- Couleur de l'arrière-plan (si non transparent) -->
+                    <div id="bg-color-panel" class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between transition-opacity">
+                        <div>
+                            <span class="text-sm font-medium text-slate-200 block">Couleur de l'arrière-plan</span>
+                            <span class="text-xs text-slate-400">Utilisée lorsque le fond transparent est désactivé</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="color" id="bg-color" value="#ffffff" oninput="updateQR()">
+                            <input type="text" id="bg-color-hex" value="#FFFFFF" oninput="syncHex('bg-color', this.value)" class="w-24 px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-center uppercase">
+                        </div>
+                    </div>
+
+                    <!-- Couleur des points (Unie ou Dégradé) -->
+                    <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-slate-200">Couleur des Modules (Points)</span>
+                            <div class="inline-flex rounded-lg p-0.5 bg-slate-900 border border-slate-800">
+                                <button onclick="setColorMode('solid')" id="mode-solid" class="px-3 py-1 rounded-md text-xs font-medium bg-brand-600 text-white transition">Unie</button>
+                                <button onclick="setColorMode('linear')" id="mode-linear" class="px-3 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-white transition">Dégradé Linéaire</button>
+                                <button onclick="setColorMode('radial')" id="mode-radial" class="px-3 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-white transition">Dégradé Radial</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/90 border border-slate-800/80">
+                                <span class="text-xs text-slate-300">Couleur principale</span>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" id="fg-color-1" value="#0f172a" oninput="syncColorInput('fg-color-1', 'fg-color-1-hex')">
+                                    <input type="text" id="fg-color-1-hex" value="#0F172A" oninput="syncHex('fg-color-1', this.value)" class="w-20 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs font-mono uppercase text-center">
+                                </div>
+                            </div>
+
+                            <div id="fg-color-2-wrap" class="hidden flex items-center justify-between p-3 rounded-lg bg-slate-900/90 border border-slate-800/80">
+                                <span class="text-xs text-slate-300">Couleur secondaire</span>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" id="fg-color-2" value="#6366f1" oninput="syncColorInput('fg-color-2', 'fg-color-2-hex')">
+                                    <input type="text" id="fg-color-2-hex" value="#6366F1" oninput="syncHex('fg-color-2', this.value)" class="w-20 px-2 py-1 bg-slate-950 border border-slate-800 rounded text-xs font-mono uppercase text-center">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="gradient-angle-wrap" class="hidden pt-2">
+                            <div class="flex justify-between text-xs text-slate-400 mb-1">
+                                <span>Angle du dégradé</span>
+                                <span id="grad-angle-val">45°</span>
+                            </div>
+                            <input type="range" id="grad-angle" min="0" max="360" value="45" oninput="updateQR()" class="w-full accent-brand-500 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <!-- Couleurs personnalisées pour les Yeux -->
+                    <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-4">
+                        <label class="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span class="text-sm font-semibold text-slate-200 block">Couleurs distinctes pour les Yeux (Coins)</span>
+                                <span class="text-xs text-slate-400">Permet de colorer les 3 repères différemment des points</span>
+                            </div>
+                            <input type="checkbox" id="custom-eye-colors" onchange="toggleCustomEyes()" class="w-4 h-4 rounded accent-brand-500">
+                        </label>
+
+                        <div id="custom-eyes-panel" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/90 border border-slate-800/80">
+                                <span class="text-xs text-slate-300">Cadre extérieur</span>
+                                <input type="color" id="eye-frame-color" value="#4f46e5" oninput="updateQR()">
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/90 border border-slate-800/80">
+                                <span class="text-xs text-slate-300">Pupille intérieure</span>
+                                <input type="color" id="eye-ball-color" value="#ec4899" oninput="updateQR()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: LOGO & TEXTE D'APPEL -->
+                <div id="tab-logo" class="tab-content space-y-6">
+                    <!-- Upload ou Icônes prédéfinies -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Logo Central</label>
+                            <button onclick="removeLogo()" id="btn-remove-logo" class="hidden text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Retirer le logo
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-700 hover:border-brand-500 rounded-xl bg-slate-950/50 cursor-pointer transition group">
+                                <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-400 group-hover:text-brand-400 mb-1.5 transition"></i>
+                                <span class="text-xs font-medium text-slate-200">Importer votre image (PNG, SVG, JPG)</span>
+                                <span class="text-[11px] text-slate-500 mt-0.5">Supporte les logos transparents</span>
+                                <input type="file" id="logo-upload" accept="image/*" onchange="handleLogoUpload(event)" class="hidden">
+                            </label>
+
+                            <!-- Logos rapides vectoriels intégrés -->
+                            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex flex-col justify-between">
+                                <span class="text-xs text-slate-400 mb-2">Ou choisir un badge vectoriel :</span>
+                                <div class="grid grid-cols-5 gap-1.5">
+                                    <button onclick="setPresetLogo('scan')" title="Scan" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-brand-400">
+                                        <i data-lucide="scan-line" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="setPresetLogo('wifi')" title="WiFi" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-sky-400">
+                                        <i data-lucide="wifi" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="setPresetLogo('heart')" title="Cœur" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-rose-500">
+                                        <i data-lucide="heart" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="setPresetLogo('globe')" title="Web" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-emerald-400">
+                                        <i data-lucide="globe" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="setPresetLogo('star')" title="Étoile" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-amber-400">
+                                        <i data-lucide="star" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Réglages du Logo -->
+                    <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Taille du logo</span>
+                                <span id="logo-size-val" class="text-brand-400">22%</span>
+                            </div>
+                            <input type="range" id="logo-size" min="12" max="32" value="22" oninput="updateQR()" class="w-full accent-brand-500 cursor-pointer">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Marge de sécurité autour du logo</span>
+                                <span id="logo-margin-val" class="text-brand-400">6 px</span>
+                            </div>
+                            <input type="range" id="logo-margin" min="0" max="24" value="6" oninput="updateQR()" class="w-full accent-brand-500 cursor-pointer">
+                        </div>
+                        <div class="flex flex-wrap gap-6 pt-1">
+                            <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                <input type="checkbox" id="logo-excavate" checked onchange="updateQR()" class="rounded accent-brand-500">
+                                Effacer les points sous le logo (Recommandé)
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                <input type="checkbox" id="logo-bg-plate" onchange="updateQR()" class="rounded accent-brand-500">
+                                Ajouter une pastille de fond sous le logo
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Badge / Texte d'appel en bas -->
+                    <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Badge / Texte sous le QR Code</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="sm:col-span-2">
+                                <input type="text" id="frame-text" oninput="updateQR()" placeholder="Ex: SCANNEZ-MOI !" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                            </div>
+                            <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl">
+                                <span class="text-xs text-slate-400">Couleur badge</span>
+                                <input type="color" id="frame-color" value="#4f46e5" oninput="updateQR()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: OPTIONS TECHNIQUES -->
+                <div id="tab-advanced" class="tab-content space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Correction d'erreur (ECC)</label>
+                            <select id="qr-ecc" onchange="updateQR()" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                                <option value="L">Faible (L ~7%) - Plus aéré</option>
+                                <option value="M">Moyenne (M ~15%) - Standard</option>
+                                <option value="Q">Élevée (Q ~25%) - Robuste</option>
+                                <option value="H" selected>Maximale (H ~30%) - Idéal avec Logo</option>
+                            </select>
+                            <p class="text-[11px] text-slate-500 mt-2">Le niveau Maximal (H) permet au QR code d'être scanné même avec un grand logo au centre.</p>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Résolution d'export PNG</label>
+                            <select id="qr-size" onchange="updateQR()" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                                <option value="600">600 × 600 px (Web)</option>
+                                <option value="1200" selected>1200 × 1200 px (Haute Définition)</option>
+                                <option value="2000">2000 × 2000 px (Impression Pro)</option>
+                                <option value="3000">3000 × 3000 px (Ultra 4K)</option>
+                            </select>
+                            <p class="text-[11px] text-slate-500 mt-2">Définit la finesse exacte du fichier PNG généré.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Marge extérieure (Quiet Zone)</span>
+                                <span id="qr-margin-val" class="text-brand-400">2 modules</span>
+                            </div>
+                            <input type="range" id="qr-margin" min="0" max="6" value="2" oninput="updateQR()" class="w-full accent-brand-500 cursor-pointer">
+                        </div>
+
+                        <div id="bg-radius-wrap">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-300">Arrondi de la plaque de fond</span>
+                                <span id="bg-radius-val" class="text-brand-400">8%</span>
+                            </div>
+                            <input type="range" id="bg-radius" min="0" max="50" value="8" oninput="updateQR()" class="w-full accent-brand-500 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Sticky Preview & Export (5 cols on large screens) -->
+        <div class="lg:col-span-5 lg:sticky lg:top-24 space-y-5">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col items-center">
+                
+                <!-- Status Header -->
+                <div class="w-full flex items-center justify-between mb-4">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Aperçu en temps réel
+                    </span>
+                    <button onclick="quickToggleTransparency()" id="badge-transparency" class="text-xs px-2.5 py-1 rounded-full font-medium border transition flex items-center gap-1.5 cursor-pointer bg-slate-800 text-slate-300 border-slate-700 hover:border-brand-500">
+                        <i data-lucide="grid" class="w-3.5 h-3.5"></i>
+                        <span id="badge-trans-text">Activer Fond Transparent</span>
+                    </button>
+                </div>
+
+                <!-- QR Canvas Container with Checkerboard for Transparency Preview -->
+                <div class="w-full max-w-[340px] aspect-square rounded-2xl p-4 checkerboard border border-slate-700/70 shadow-inner flex items-center justify-center relative group overflow-hidden">
+                    <canvas id="qr-canvas" class="w-full h-full object-contain drop-shadow-sm transition-transform duration-200"></canvas>
+                </div>
+
+                <!-- Scannability Tip -->
+                <div id="contrast-warning" class="hidden w-full mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                    <span>Attention : sur fond transparent, assurez-vous que la surface finale où vous poserez le PNG offre un bon contraste.</span>
+                </div>
+
+                <!-- Action Buttons: Export PNG, SVG, Copy -->
+                <div class="w-full mt-6 space-y-3">
+                    <button onclick="downloadPNG()" class="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 flex items-center justify-center gap-2 transition transform active:scale-[0.99]">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                        Télécharger en PNG <span id="btn-png-sub" class="text-xs font-normal opacity-85">(Haute Définition)</span>
+                    </button>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="downloadSVG()" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium text-xs flex items-center justify-center gap-2 transition">
+                            <i data-lucide="file-code" class="w-4 h-4 text-brand-400"></i>
+                            Exporter en SVG
+                        </button>
+                        <button onclick="copyConfigJSON()" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium text-xs flex items-center justify-center gap-2 transition">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                            Style Aléatoire
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toast Notification Box -->
+            <div id="toast" class="hidden fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-slate-900 border border-brand-500/50 text-white text-sm shadow-2xl flex items-center gap-2.5">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+                <span id="toast-msg">Export réussi !</span>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- ÉTAT GLOBAL DE L'APPLICATION ---
+        const state = {
+            contentType: 'url',
+            dotStyle: 'square',
+            eyeFrame: 'square',
+            eyeBall: 'square',
+            colorMode: 'solid', // 'solid' | 'linear' | 'radial'
+            transparentBg: false,
+            customEyeColors: false,
+            logoImg: null
+        };
+
+        // Initialisation des icônes Lucide et du premier rendu
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateQR();
+        });
+
+        // --- NAVIGATION PAR ONGLETS ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md', 'shadow-brand-600/20');
+                btn.classList.add('text-slate-400');
+            });
+
+            document.getElementById('tab-' + tabId).classList.add('active');
+            const activeBtn = document.getElementById('tab-btn-' + tabId);
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('bg-brand-600', 'text-white', 'shadow-md', 'shadow-brand-600/20');
+        }
+
+        // --- GESTION DU TYPE DE CONTENU ---
+        function setContentType(type) {
+            state.contentType = type;
+            document.querySelectorAll('.content-type-btn').forEach(btn => {
+                btn.className = "content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-800/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition";
+            });
+            const active = document.getElementById('type-' + type);
+            active.className = "content-type-btn flex flex-col items-center justify-center p-3 rounded-xl border border-brand-500 bg-brand-500/10 text-brand-400 transition";
+
+            document.querySelectorAll('.content-form').forEach(f => f.classList.add('hidden'));
+            document.getElementById('form-' + type).classList.remove('hidden');
+            updateQR();
+        }
+
+        function getFormattedPayload() {
+            switch (state.contentType) {
+                case 'url':
+                    return document.getElementById('input-url').value.trim() || 'https://google.fr';
+                case 'text':
+                    return document.getElementById('input-text').value || 'QR Studio Ultimate';
+                case 'wifi': {
+                    const ssid = document.getElementById('wifi-ssid').value || 'MonWiFi';
+                    const pass = document.getElementById('wifi-pass').value || '';
+                    const t = document.getElementById('wifi-type').value;
+                    const h = document.getElementById('wifi-hidden').checked ? 'true' : 'false';
+                    return `WIFI:T:${t};S:${ssid};P:${pass};H:${h};;`;
+                }
+                case 'vcard': {
+                    const fn = document.getElementById('vcard-fn').value || 'Jean Dupont';
+                    const org = document.getElementById('vcard-org').value || '';
+                    const tel = document.getElementById('vcard-tel').value || '';
+                    const email = document.getElementById('vcard-email').value || '';
+                    const url = document.getElementById('vcard-url').value || '';
+                    return `BEGIN:VCARD\nVERSION:3.0\nFN:${fn}\nORG:${org}\nTEL:${tel}\nEMAIL:${email}\nURL:${url}\nEND:VCARD`;
+                }
+                case 'email': {
+                    const to = document.getElementById('email-to').value || 'contact@exemple.fr';
+                    const sub = encodeURIComponent(document.getElementById('email-sub').value || '');
+                    const body = encodeURIComponent(document.getElementById('email-body').value || '');
+                    return `mailto:${to}?subject=${sub}&body=${body}`;
+                }
+                case 'sms': {
+                    const tel = document.getElementById('sms-tel').value || '';
+                    const body = document.getElementById('sms-body').value || '';
+                    return `SMSTO:${tel}:${body}`;
+                }
+                default:
+                    return 'https://google.fr';
+            }
+        }
+
+        // --- SÉLECTION DES FORMES ---
+        function setShape(category, value) {
+            state[category] = value;
+
+            const selectorMap = {
+                dotStyle: '.shape-btn-dot',
+                eyeFrame: '.shape-btn-eyeframe',
+                eyeBall: '.shape-btn-eyeball'
+            };
+
+            document.querySelectorAll(selectorMap[category]).forEach(btn => {
+                if (btn.dataset.val === value) {
+                    btn.className = `${selectorMap[category].slice(1)} p-3 rounded-xl border border-brand-500 bg-brand-500/10 text-white flex flex-col items-center gap-1.5 transition`;
+                } else {
+                    btn.className = `${selectorMap[category].slice(1)} p-3 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-300 hover:border-slate-700 flex flex-col items-center gap-1.5 transition`;
+                }
+            });
+
+            updateQR();
+        }
+
+        // --- GESTION DES COULEURS ET TRANSPARENCE ---
+        function toggleTransparentBg() {
+            const checkbox = document.getElementById('bg-transparent');
+            state.transparentBg = checkbox.checked;
+
+            const bgPanel = document.getElementById('bg-color-panel');
+            const radiusWrap = document.getElementById('bg-radius-wrap');
+            const badge = document.getElementById('badge-transparency');
+            const badgeText = document.getElementById('badge-trans-text');
+            const btnPngSub = document.getElementById('btn-png-sub');
+            const warning = document.getElementById('contrast-warning');
+
+            if (state.transparentBg) {
+                bgPanel.classList.add('opacity-40', 'pointer-events-none');
+                radiusWrap.classList.add('opacity-40', 'pointer-events-none');
+                badge.className = "text-xs px-2.5 py-1 rounded-full font-medium border transition flex items-center gap-1.5 cursor-pointer bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+                badgeText.textContent = "Fond Transparent Actif";
+                btnPngSub.textContent = "(Fond Transparent)";
+                warning.classList.remove('hidden');
+            } else {
+                bgPanel.classList.remove('opacity-40', 'pointer-events-none');
+                radiusWrap.classList.remove('opacity-40', 'pointer-events-none');
+                badge.className = "text-xs px-2.5 py-1 rounded-full font-medium border transition flex items-center gap-1.5 cursor-pointer bg-slate-800 text-slate-300 border-slate-700 hover:border-brand-500";
+                badgeText.textContent = "Activer Fond Transparent";
+                btnPngSub.textContent = "(Haute Définition)";
+                warning.classList.add('hidden');
+            }
+
+            updateQR();
+        }
+
+        function quickToggleTransparency() {
+            const checkbox = document.getElementById('bg-transparent');
+            checkbox.checked = !checkbox.checked;
+            toggleTransparentBg();
+        }
+
+        function setColorMode(mode) {
+            state.colorMode = mode;
+            ['solid', 'linear', 'radial'].forEach(m => {
+                const btn = document.getElementById('mode-' + m);
+                if (m === mode) {
+                    btn.className = "px-3 py-1 rounded-md text-xs font-medium bg-brand-600 text-white transition";
+                } else {
+                    btn.className = "px-3 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-white transition";
+                }
+            });
+
+            const color2Wrap = document.getElementById('fg-color-2-wrap');
+            const angleWrap = document.getElementById('gradient-angle-wrap');
+
+            if (mode === 'solid') {
+                color2Wrap.classList.add('hidden');
+                angleWrap.classList.add('hidden');
+            } else if (mode === 'linear') {
+                color2Wrap.classList.remove('hidden');
+                angleWrap.classList.remove('hidden');
+            } else {
+                color2Wrap.classList.remove('hidden');
+                angleWrap.classList.add('hidden');
+            }
+            updateQR();
+        }
+
+        function toggleCustomEyes() {
+            state.customEyeColors = document.getElementById('custom-eye-colors').checked;
+            const panel = document.getElementById('custom-eyes-panel');
+            if (state.customEyeColors) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+            updateQR();
+        }
+
+        function syncColorInput(colorId, hexId) {
+            document.getElementById(hexId).value = document.getElementById(colorId).value.toUpperCase();
+            updateQR();
+        }
+
+        function syncHex(colorId, val) {
+            if (/^#[0-9A-F]{6}$/i.test(val)) {
+                document.getElementById(colorId).value = val;
+                updateQR();
+            }
+        }
+
+        // --- GESTION DU LOGO ---
+        function handleLogoUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    state.logoImg = img;
+                    document.getElementById('btn-remove-logo').classList.remove('hidden');
+                    updateQR();
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setPresetLogo(type) {
+            const svgMap = {
+                scan: `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" x2="17" y1="12" y2="12"/></svg>`,
+                wifi: `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>`,
+                heart: `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+                globe: `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>`,
+                star: `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+            };
+            const svgBlob = new Blob([svgMap[type]], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            const img = new Image();
+            img.onload = () => {
+                state.logoImg = img;
+                document.getElementById('logo-bg-plate').checked = true;
+                document.getElementById('btn-remove-logo').classList.remove('hidden');
+                URL.revokeObjectURL(url);
+                updateQR();
+            };
+            img.src = url;
+        }
+
+        function removeLogo() {
+            state.logoImg = null;
+            document.getElementById('logo-upload').value = '';
+            document.getElementById('btn-remove-logo').classList.add('hidden');
+            updateQR();
+        }
+
+        // --- MOTEUR DE RENDU DU QR CODE SUR CANVAS ---
+        function isFinderPattern(r, c, count) {
+            if (r < 7 && c < 7) return true;
+            if (r < 7 && c >= count - 7) return true;
+            if (r >= count - 7 && c < 7) return true;
+            return false;
+        }
+
+        function updateQR() {
+            // Mise à jour des labels d'interface
+            const dotScale = parseInt(document.getElementById('dot-scale').value) / 100;
+            document.getElementById('dot-scale-val').textContent = `${Math.round(dotScale * 100)}%`;
+
+            const gradAngle = parseInt(document.getElementById('grad-angle').value);
+            document.getElementById('grad-angle-val').textContent = `${gradAngle}°`;
+
+            const logoSizePct = parseInt(document.getElementById('logo-size').value) / 100;
+            document.getElementById('logo-size-val').textContent = `${Math.round(logoSizePct * 100)}%`;
+
+            const logoMarginPx = parseInt(document.getElementById('logo-margin').value);
+            document.getElementById('logo-margin-val').textContent = `${logoMarginPx} px`;
+
+            const marginModules = parseInt(document.getElementById('qr-margin').value);
+            document.getElementById('qr-margin-val').textContent = `${marginModules} modules`;
+
+            const bgRadiusPct = parseInt(document.getElementById('bg-radius').value);
+            document.getElementById('bg-radius-val').textContent = `${bgRadiusPct}%`;
+
+            // Génération de la matrice QR
+            const payload = getFormattedPayload();
+            const ecc = document.getElementById('qr-ecc').value;
+            let qr;
+            try {
+                qr = qrcode(0, ecc);
+                qr.addData(unescape(encodeURIComponent(payload)));
+                qr.make();
+            } catch (err) {
+                qr = qrcode(0, 'L');
+                qr.addData('QR Studio');
+                qr.make();
+            }
+
+            const moduleCount = qr.getModuleCount();
+            const baseSize = parseInt(document.getElementById('qr-size').value);
+            const frameText = document.getElementById('frame-text').value.trim();
+            const extraHeight = frameText ? Math.round(baseSize * 0.14) : 0;
+
+            const canvas = document.getElementById('qr-canvas');
+            canvas.width = baseSize;
+            canvas.height = baseSize + extraHeight;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Nettoyage intégral pour garantir la transparence Alpha
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Dessin du fond si non transparent
+            const bgColor = document.getElementById('bg-color').value;
+            if (!state.transparentBg) {
+                ctx.fillStyle = bgColor;
+                const radius = (bgRadiusPct / 100) * (baseSize / 2);
+                drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, radius);
+                ctx.fill();
+            }
+
+            // Calcul géométrique de la grille
+            const totalModules = moduleCount + marginModules * 2;
+            const cellSize = baseSize / totalModules;
+            const offset = marginModules * cellSize;
+
+            // Zone d'exclusion du logo central
+            const excavate = document.getElementById('logo-excavate').checked && state.logoImg;
+            const logoPixelSize = baseSize * logoSizePct;
+            const logoBoxHalf = (logoPixelSize / 2) + logoMarginPx;
+            const centerPx = baseSize / 2;
+
+            function isInsideLogoZone(r, c) {
+                if (!excavate) return false;
+                const cx = offset + (c + 0.5) * cellSize;
+                const cy = offset + (r + 0.5) * cellSize;
+                return (
+                    cx >= centerPx - logoBoxHalf &&
+                    cx <= centerPx + logoBoxHalf &&
+                    cy >= centerPx - logoBoxHalf &&
+                    cy <= centerPx + logoBoxHalf
+                );
+            }
+
+            // 3. Préparation du style de remplissage des points (Couleur unie ou dégradé)
+            const fg1 = document.getElementById('fg-color-1').value;
+            const fg2 = document.getElementById('fg-color-2').value;
+            let mainFillStyle = fg1;
+
+            if (state.colorMode === 'linear') {
+                const rad = (gradAngle * Math.PI) / 180;
+                const x1 = centerPx - Math.cos(rad) * centerPx;
+                const y1 = centerPx - Math.sin(rad) * centerPx;
+                const x2 = centerPx + Math.cos(rad) * centerPx;
+                const y2 = centerPx + Math.sin(rad) * centerPx;
+                const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+                grad.addColorStop(0, fg1);
+                grad.addColorStop(1, fg2);
+                mainFillStyle = grad;
+            } else if (state.colorMode === 'radial') {
+                const grad = ctx.createRadialGradient(centerPx, centerPx, baseSize * 0.05, centerPx, centerPx, baseSize * 0.6);
+                grad.addColorStop(0, fg1);
+                grad.addColorStop(1, fg2);
+                mainFillStyle = grad;
+            }
+
+            ctx.fillStyle = mainFillStyle;
+
+            // 4. Dessin des Modules (Points de données)
+            for (let r = 0; r < moduleCount; r++) {
+                for (let c = 0; c < moduleCount; c++) {
+                    if (!qr.isDark(r, c)) continue;
+                    if (isFinderPattern(r, c, moduleCount)) continue;
+                    if (isInsideLogoZone(r, c)) continue;
+
+                    const x = offset + c * cellSize;
+                    const y = offset + r * cellSize;
+
+                    // Vérification des voisins pour le mode "Fluide / Connecté"
+                    const neighbors = {
+                        top: r > 0 && qr.isDark(r - 1, c) && !isFinderPattern(r - 1, c, moduleCount) && !isInsideLogoZone(r - 1, c),
+                        bottom: r < moduleCount - 1 && qr.isDark(r + 1, c) && !isFinderPattern(r + 1, c, moduleCount) && !isInsideLogoZone(r + 1, c),
+                        left: c > 0 && qr.isDark(r, c - 1) && !isFinderPattern(r, c - 1, moduleCount) && !isInsideLogoZone(r, c - 1),
+                        right: c < moduleCount - 1 && qr.isDark(r, c + 1) && !isFinderPattern(r, c + 1, moduleCount) && !isInsideLogoZone(r, c + 1)
+                    };
+
+                    drawModule(ctx, x, y, cellSize, state.dotStyle, dotScale, neighbors);
+                }
+            }
+
+            // 5. Dessin des 3 Yeux (Finder Patterns)
+            const eyeFrameColor = state.customEyeColors ? document.getElementById('eye-frame-color').value : mainFillStyle;
+            const eyeBallColor = state.customEyeColors ? document.getElementById('eye-ball-color').value : mainFillStyle;
+
+            const eyePositions = [
+                { r: 0, c: 0 },
+                { r: 0, c: moduleCount - 7 },
+                { r: moduleCount - 7, c: 0 }
+            ];
+
+            eyePositions.forEach(pos => {
+                const ex = offset + pos.c * cellSize;
+                const ey = offset + pos.r * cellSize;
+                drawFinderEye(ctx, ex, ey, cellSize, state.eyeFrame, state.eyeBall, eyeFrameColor, eyeBallColor);
+            });
+
+            // 6. Dessin du Logo Central
+            if (state.logoImg) {
+                const lx = centerPx - logoPixelSize / 2;
+                const ly = centerPx - logoPixelSize / 2;
+
+                if (document.getElementById('logo-bg-plate').checked) {
+                    ctx.save();
+                    ctx.fillStyle = state.transparentBg ? '#ffffff' : bgColor;
+                    const plateSize = logoPixelSize + logoMarginPx * 1.6;
+                    drawRoundedRect(
+                        ctx,
+                        centerPx - plateSize / 2,
+                        centerPx - plateSize / 2,
+                        plateSize,
+                        plateSize,
+                        plateSize * 0.22
+                    );
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                ctx.save();
+                ctx.drawImage(state.logoImg, lx, ly, logoPixelSize, logoPixelSize);
+                ctx.restore();
+            }
+
+            // 7. Dessin du Badge / Texte d'appel en bas
+            if (frameText) {
+                const frameColor = document.getElementById('frame-color').value;
+                const badgeWidth = baseSize * 0.78;
+                const badgeHeight = extraHeight * 0.68;
+                const bx = (baseSize - badgeWidth) / 2;
+                const by = baseSize + (extraHeight - badgeHeight) / 2 - (extraHeight * 0.08);
+
+                ctx.save();
+                ctx.fillStyle = frameColor;
+                drawRoundedRect(ctx, bx, by, badgeWidth, badgeHeight, badgeHeight / 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${Math.round(badgeHeight * 0.48)}px Inter, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(frameText.toUpperCase(), baseSize / 2, by + badgeHeight / 2 + 1);
+                ctx.restore();
+            }
+        }
+
+        // --- PRIMITIVES GÉOMÉTRIQUES DES MODULES ---
+        function drawModule(ctx, x, y, size, style, scale, neighbors) {
+            const s = size * scale;
+            const pad = (size - s) / 2;
+            const cx = x + size / 2;
+            const cy = y + size / 2;
+
+            ctx.beginPath();
+
+            switch (style) {
+                case 'square':
+                    ctx.rect(x + pad, y + pad, s, s);
+                    ctx.fill();
+                    break;
+
+                case 'rounded':
+                    drawRoundedRect(ctx, x + pad, y + pad, s, s, s * 0.32);
+                    ctx.fill();
+                    break;
+
+                case 'dots':
+                    ctx.arc(cx, cy, s / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+
+                case 'liquid': {
+                    const r = size * 0.45;
+                    const tl = (neighbors.top || neighbors.left) ? 0 : r;
+                    const tr = (neighbors.top || neighbors.right) ? 0 : r;
+                    const br = (neighbors.bottom || neighbors.right) ? 0 : r;
+                    const bl = (neighbors.bottom || neighbors.left) ? 0 : r;
+                    drawCustomCornerRect(ctx, x, y, size + 0.4, size + 0.4, tl, tr, br, bl);
+                    ctx.fill();
+                    break;
+                }
+
+                case 'diamond':
+                    ctx.moveTo(cx, y + pad);
+                    ctx.lineTo(x + size - pad, cy);
+                    ctx.lineTo(cx, y + size - pad);
+                    ctx.lineTo(x + pad, cy);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+
+                case 'star':
+                    drawStar(ctx, cx, cy, 5, s * 0.55, s * 0.25);
+                    ctx.fill();
+                    break;
+
+                case 'heart':
+                    drawHeart(ctx, cx, cy, s * 0.95);
+                    ctx.fill();
+                    break;
+
+                case 'cross': {
+                    const thickness = s * 0.36;
+                    ctx.rect(cx - thickness / 2, y + pad, thickness, s);
+                    ctx.rect(x + pad, cy - thickness / 2, s, thickness);
+                    ctx.fill();
+                    break;
+                }
+
+                case 'vbars': {
+                    const topPad = neighbors.top ? 0 : pad;
+                    const botPad = neighbors.bottom ? 0 : pad;
+                    const h = size - topPad - botPad + (neighbors.top || neighbors.bottom ? 0.5 : 0);
+                    drawRoundedRect(ctx, x + pad, y + topPad, s, h, neighbors.top || neighbors.bottom ? s * 0.2 : s * 0.45);
+                    ctx.fill();
+                    break;
+                }
+
+                case 'hbars': {
+                    const leftPad = neighbors.left ? 0 : pad;
+                    const rightPad = neighbors.right ? 0 : pad;
+                    const w = size - leftPad - rightPad + (neighbors.left || neighbors.right ? 0.5 : 0);
+                    drawRoundedRect(ctx, x + leftPad, y + pad, w, s, neighbors.left || neighbors.right ? s * 0.2 : s * 0.45);
+                    ctx.fill();
+                    break;
+                }
+            }
+        }
+
+        // --- DESSIN DES YEUX (FINDER PATTERNS) AVEC DÉCOUPE TRANSPARENTE ---
+        function drawFinderEye(ctx, x, y, cellSize, frameStyle, ballStyle, frameColor, ballColor) {
+            const outerSize = cellSize * 7;
+            const innerHoleSize = cellSize * 5;
+            const ballSize = cellSize * 3;
+
+            // Cadre extérieur (7x7 avec découpe intérieure 5x5 via règle 'evenodd' pour préserver la transparence)
+            ctx.save();
+            ctx.fillStyle = frameColor;
+            ctx.beginPath();
+            traceEyeShapePath(ctx, x, y, outerSize, frameStyle);
+            traceEyeShapePath(ctx, x + cellSize, y + cellSize, innerHoleSize, frameStyle);
+            ctx.fill('evenodd');
+            ctx.restore();
+
+            // Pupille centrale (3x3)
+            ctx.save();
+            ctx.fillStyle = ballColor;
+            ctx.beginPath();
+            const bx = x + cellSize * 2;
+            const by = y + cellSize * 2;
+            const bcx = bx + ballSize / 2;
+            const bcy = by + ballSize / 2;
+
+            if (ballStyle === 'star') {
+                drawStar(ctx, bcx, bcy, 5, ballSize * 0.55, ballSize * 0.25);
+            } else if (ballStyle === 'heart') {
+                drawHeart(ctx, bcx, bcy, ballSize * 0.92);
+            } else if (ballStyle === 'diamond') {
+                ctx.moveTo(bcx, by);
+                ctx.lineTo(bx + ballSize, bcy);
+                ctx.lineTo(bcx, by + ballSize);
+                ctx.lineTo(bx, bcy);
+                ctx.closePath();
+            } else {
+                traceEyeShapePath(ctx, bx, by, ballSize, ballStyle);
+            }
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function traceEyeShapePath(ctx, x, y, size, style) {
+            switch (style) {
+                case 'square':
+                    ctx.rect(x, y, size, size);
+                    break;
+                case 'rounded':
+                    drawRoundedRect(ctx, x, y, size, size, size * 0.25);
+                    break;
+                case 'circle':
+                    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+                    break;
+                case 'leaf':
+                    drawCustomCornerRect(ctx, x, y, size, size, size * 0.42, size * 0.06, size * 0.42, size * 0.06);
+                    break;
+                case 'shield':
+                    drawCustomCornerRect(ctx, x, y, size, size, size * 0.12, size * 0.12, size * 0.45, size * 0.45);
+                    break;
+                default:
+                    ctx.rect(x, y, size, size);
+            }
+        }
+
+        // --- FONCTIONS UTILITAIRES DE TRACÉ ---
+        function drawRoundedRect(ctx, x, y, w, h, r) {
+            const radius = Math.min(r, w / 2, h / 2);
+            drawCustomCornerRect(ctx, x, y, w, h, radius, radius, radius, radius);
+        }
+
+        function drawCustomCornerRect(ctx, x, y, w, h, tl, tr, br, bl) {
+            ctx.moveTo(x + tl, y);
+            ctx.lineTo(x + w - tr, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
+            ctx.lineTo(x + w, y + h - br);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+            ctx.lineTo(x + bl, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
+            ctx.lineTo(x, y + tl);
+            ctx.quadraticCurveTo(x, y, x + tl, y);
+            ctx.closePath();
+        }
+
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            const step = Math.PI / spikes;
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+        }
+
+        function drawHeart(ctx, cx, cy, size) {
+            const w = size;
+            const h = size;
+            const x = cx - w / 2;
+            const y = cy - h / 2.2;
+            ctx.moveTo(cx, y + h * 0.28);
+            ctx.bezierCurveTo(cx, y + h * 0.1, x + w * 0.1, y, x + w * 0.25, y);
+            ctx.bezierCurveTo(x, y, x, y + h * 0.45, x, y + h * 0.45);
+            ctx.bezierCurveTo(x, y + h * 0.7, cx, y + h * 0.9, cx, y + h);
+            ctx.bezierCurveTo(cx, y + h * 0.9, x + w, y + h * 0.7, x + w, y + h * 0.45);
+            ctx.bezierCurveTo(x + w, y + h * 0.45, x + w, y, x + w * 0.75, y);
+            ctx.bezierCurveTo(x + w * 0.6, y, cx, y + h * 0.1, cx, y + h * 0.28);
+            ctx.closePath();
+        }
+
+        // --- THÈMES PRÉDÉFINIS & GÉNÉRATEUR ALÉATOIRE ---
+        function applyPreset(name) {
+            if (name === 'cyberpunk') {
+                document.getElementById('bg-transparent').checked = false;
+                document.getElementById('bg-color').value = '#090d16';
+                document.getElementById('bg-color-hex').value = '#090D16';
+                setColorMode('linear');
+                document.getElementById('fg-color-1').value = '#f43f5e';
+                document.getElementById('fg-color-1-hex').value = '#F43F5E';
+                document.getElementById('fg-color-2').value = '#06b6d4';
+                document.getElementById('fg-color-2-hex').value = '#06B6D4';
+                setShape('dotStyle', 'liquid');
+                setShape('eyeFrame', 'leaf');
+                setShape('eyeBall', 'diamond');
+                toggleTransparentBg();
+            } else if (name === 'ghost') {
+                document.getElementById('bg-transparent').checked = true;
+                setColorMode('linear');
+                document.getElementById('fg-color-1').value = '#4f46e5';
+                document.getElementById('fg-color-1-hex').value = '#4F46E5';
+                document.getElementById('fg-color-2').value = '#9333ea';
+                document.getElementById('fg-color-2-hex').value = '#9333EA';
+                setShape('dotStyle', 'rounded');
+                setShape('eyeFrame', 'rounded');
+                setShape('eyeBall', 'circle');
+                toggleTransparentBg();
+            } else if (name === 'luxury') {
+                document.getElementById('bg-transparent').checked = false;
+                document.getElementById('bg-color').value = '#0f172a';
+                document.getElementById('bg-color-hex').value = '#0F172A';
+                setColorMode('linear');
+                document.getElementById('fg-color-1').value = '#fde047';
+                document.getElementById('fg-color-1-hex').value = '#FDE047';
+                document.getElementById('fg-color-2').value = '#ca8a04';
+                document.getElementById('fg-color-2-hex').value = '#CA8A04';
+                setShape('dotStyle', 'diamond');
+                setShape('eyeFrame', 'shield');
+                setShape('eyeBall', 'star');
+                toggleTransparentBg();
+            }
+            showToast('Thème appliqué avec succès !');
+        }
+
+        function copyConfigJSON() {
+            const dots = ['square', 'rounded', 'dots', 'liquid', 'diamond', 'star', 'vbars', 'hbars'];
+            const frames = ['square', 'rounded', 'circle', 'leaf', 'shield'];
+            const balls = ['square', 'rounded', 'circle', 'diamond', 'star', 'heart'];
+            const palettes = [
+                ['#6366f1', '#ec4899'],
+                ['#059669', '#10b981'],
+                ['#ea580c', '#facc15'],
+                ['#2563eb', '#06b6d4'],
+                ['#7c3aed', '#f43f5e'],
+                ['#0f172a', '#334155']
+            ];
+
+            const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+            const pal = pick(palettes);
+
+            setColorMode('linear');
+            document.getElementById('fg-color-1').value = pal[0];
+            document.getElementById('fg-color-1-hex').value = pal[0].toUpperCase();
+            document.getElementById('fg-color-2').value = pal[1];
+            document.getElementById('fg-color-2-hex').value = pal[1].toUpperCase();
+            setShape('dotStyle', pick(dots));
+            setShape('eyeFrame', pick(frames));
+            setShape('eyeBall', pick(balls));
+            updateQR();
+            showToast('Nouveau style généré !');
+        }
+
+        function resetAll() {
+            document.getElementById('bg-transparent').checked = false;
+            document.getElementById('bg-color').value = '#ffffff';
+            document.getElementById('bg-color-hex').value = '#FFFFFF';
+            setColorMode('solid');
+            document.getElementById('fg-color-1').value = '#0f172a';
+            document.getElementById('fg-color-1-hex').value = '#0F172A';
+            document.getElementById('custom-eye-colors').checked = false;
+            toggleCustomEyes();
+            removeLogo();
+            document.getElementById('frame-text').value = '';
+            setShape('dotStyle', 'square');
+            setShape('eyeFrame', 'square');
+            setShape('eyeBall', 'square');
+            toggleTransparentBg();
+            showToast('Paramètres réinitialisés.');
+        }
+
+        // --- EXPORT PNG & SVG ---
+        function downloadPNG() {
+            updateQR(); // S'assure que le canvas est à jour à la pleine résolution
+            const canvas = document.getElementById('qr-canvas');
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            const suffix = state.transparentBg ? 'transparent' : 'hd';
+            link.download = `qrcode-ultimate-${suffix}.png`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(state.transparentBg ? 'PNG Transparent téléchargé !' : 'PNG Haute Définition téléchargé !');
+        }
+
+        function downloadSVG() {
+            const payload = getFormattedPayload();
+            const ecc = document.getElementById('qr-ecc').value;
+            const qr = qrcode(0, ecc);
+            qr.addData(unescape(encodeURIComponent(payload)));
+            qr.make();
+
+            const count = qr.getModuleCount();
+            const margin = parseInt(document.getElementById('qr-margin').value);
+            const size = 1000;
+            const cell = size / (count + margin * 2);
+            const offset = margin * cell;
+            const fg1 = document.getElementById('fg-color-1').value;
+            const fg2 = document.getElementById('fg-color-2').value;
+            const bg = document.getElementById('bg-color').value;
+
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+            svg += `<defs><linearGradient id="qrGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${fg1}"/><stop offset="100%" stop-color="${state.colorMode === 'solid' ? fg1 : fg2}"/></linearGradient></defs>`;
+
+            if (!state.transparentBg) {
+                svg += `<rect width="100%" height="100%" fill="${bg}" rx="${(parseInt(document.getElementById('bg-radius').value) / 100) * (size / 2)}"/>`;
+            }
+
+            for (let r = 0; r < count; r++) {
+                for (let c = 0; c < count; c++) {
+                    if (!qr.isDark(r, c)) continue;
+                    const x = (offset + c * cell).toFixed(2);
+                    const y = (offset + r * cell).toFixed(2);
+                    const s = cell.toFixed(2);
+                    const rx = state.dotStyle === 'dots' ? (cell / 2).toFixed(2) : (state.dotStyle === 'rounded' ? (cell * 0.3).toFixed(2) : 0);
+                    svg += `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${rx}" fill="url(#qrGrad)"/>`;
+                }
+            }
+            svg += `</svg>`;
+
+            const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qrcode-ultimate-${state.transparentBg ? 'transparent' : 'vector'}.svg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Fichier vectoriel SVG téléchargé !');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
